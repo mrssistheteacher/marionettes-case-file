@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marionettes Inc Case File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a dark detective desk. Main column plays the stations, a sticky side column searches the file. */
+:root {
+  --ink: #12161c;
+  --panel: #1b212b;
+  --line: #2f3947;
+  --text: #ebe8e1;
+  --mute: #a0aab8;
+  --amber: #f2b84b;
+  --good: #66c9b8;
+  --bad: #ec7f86;
+  --display: "Special Elite", "Courier New", monospace;
+  --body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--ink); color: var(--text); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+body { min-height: 100%; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.top { position: sticky; top: 0; z-index: 5; background: var(--ink); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+.brand { font-family: var(--display); font-size: 1.05rem; display: flex; align-items: center; gap: 10px; }
+.tick { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); animation: tk 1s steps(1) infinite; }
+@keyframes tk { 0% { opacity: 1; } 50% { opacity: 0.2; } }
+.stats { display: flex; gap: 18px; align-items: center; font-variant-numeric: tabular-nums; color: var(--mute); font-size: 0.95rem; }
+.stats b { color: var(--text); }
+.slots { display: flex; gap: 6px; }
+.slot { width: 34px; height: 38px; border: 1.5px dashed var(--line); border-radius: 4px; display: grid; place-items: center; font-family: var(--display); font-size: 1.4rem; color: var(--amber); }
+.slot.on { border-style: solid; border-color: var(--amber); background: #2a2415; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+main { min-width: 0; }
+.hero h1 { font-size: clamp(1.9rem, 4.4vw, 3rem); line-height: 1.1; }
+.hero .file { font-family: var(--display); color: var(--amber); font-size: 0.95rem; margin-bottom: 8px; }
+.hero p { max-width: 62ch; color: var(--mute); margin: 14px 0 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.team { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: end; }
+.team label { display: block; font-size: 0.85rem; color: var(--mute); margin-bottom: 4px; }
+.team input { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; min-width: 240px; }
+.btn { background: var(--amber); color: #1c1a12; border: 0; border-radius: 6px; padding: 10px 18px; font-weight: 700; }
+.btn.alt { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 22px; }
+.card { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-height: 150px; }
+.card:hover:not(:disabled) { border-color: var(--amber); }
+.card .n { font-family: var(--display); font-size: 2.4rem; line-height: 1; color: var(--amber); }
+.card h3 { font-size: 1.2rem; }
+.card small { color: var(--mute); }
+.card.done { border-color: var(--good); }
+.card.vault { border-style: dashed; }
+.stamp { margin-top: auto; font-family: var(--display); color: var(--good); border: 2px solid var(--good); border-radius: 4px; padding: 0 8px; align-self: start; transform: rotate(-3deg); }
+
+.crumb { color: var(--mute); font-size: 0.9rem; margin-bottom: 10px; display: flex; gap: 10px; align-items: center; }
+.crumb button { background: none; border: 0; color: var(--amber); padding: 0; text-decoration: underline; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0 18px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--amber); transition: width .3s; }
+.q h2 { font-size: 1.35rem; line-height: 1.3; margin-bottom: 6px; }
+.q .ref { color: var(--amber); font-size: 0.9rem; font-family: var(--display); }
+.opts { display: grid; gap: 8px; margin: 14px 0; }
+.opt { text-align: left; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 10px; align-items: flex-start; }
+.opt:hover { border-color: var(--mute); }
+.opt.sel { border-color: var(--amber); background: #26220f; }
+.opt .k { font-family: var(--display); color: var(--amber); min-width: 1.2em; }
+.opt.lie .k { font-size: 1.6rem; line-height: 1; }
+.inp { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; width: 100%; max-width: 420px; }
+.cloze { line-height: 2.3; }
+.cloze select, .match select { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.match { display: grid; gap: 10px; margin: 14px 0; }
+.match div { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.match b { min-width: 7.5em; font-family: var(--display); font-weight: 400; color: var(--amber); }
+.seq { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; min-height: 44px; }
+.chip { background: #26220f; border: 1px solid var(--amber); border-radius: 6px; padding: 6px 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.fb { margin-top: 14px; padding: 12px 14px; border-radius: 6px; border-left: 4px solid var(--line); background: var(--ink); }
+.fb.ok { border-color: var(--good); }
+.fb.no { border-color: var(--bad); }
+.shake { animation: sh .35s; }
+@keyframes sh { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.tile { font-family: var(--display); font-size: 5rem; color: var(--amber); border: 3px solid var(--amber); width: 110px; height: 120px; display: grid; place-items: center; border-radius: 6px; transform: rotate(-3deg); margin: 10px 0; }
+.big { font-family: var(--display); font-size: clamp(2.2rem, 7vw, 4.4rem); color: var(--amber); line-height: 1.1; }
+.tile-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.tile-row .tile { width: 70px; height: 80px; font-size: 3rem; transform: none; }
+.report textarea { width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; min-height: 52px; }
+.checks { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; }
+.checks li::before { content: "○ "; color: var(--mute); }
+.checks li.ok::before { content: "✓ "; color: var(--good); }
+.think { display: grid; gap: 10px; margin-top: 12px; }
+.think div { border-left: 3px solid var(--amber); padding: 4px 12px; }
+
+aside { position: sticky; top: 76px; max-height: calc(100vh - 96px); display: flex; flex-direction: column; gap: 10px; }
+aside h2 { font-size: 1.15rem; }
+aside .sub { color: var(--mute); font-size: 0.9rem; }
+#q { width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { background: var(--ink); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; font-size: 0.85rem; color: var(--mute); }
+.res { overflow: auto; display: grid; gap: 8px; padding-right: 2px; }
+.hit { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.95rem; }
+.hit .l { font-family: var(--display); color: var(--amber); font-size: 0.85rem; }
+.hit .fr { color: var(--mute); font-size: 0.85rem; }
+mark { background: #5a4713; color: var(--text); padding: 0 2px; border-radius: 2px; }
+.fab { display: none; }
+
+@media (max-width: 920px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  aside { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 72vh; background: var(--panel); border-top: 2px solid var(--amber); padding: 14px 16px; transform: translateY(105%); transition: transform .25s; z-index: 9; }
+  aside.open { transform: none; }
+  .fab { display: block; position: fixed; right: 14px; bottom: 14px; z-index: 8; background: var(--amber); color: #1c1a12; border: 0; border-radius: 99px; padding: 12px 18px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+}
+@media (prefers-reduced-motion: reduce) { .tick, .shake { animation: none; } .bar i, aside { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><span class="tick" aria-hidden="true"></span><span>MARIONETTES, INC. · CASE FILE</span></div>
+  <div class="stats"><span>Time <b id="clock">00:00</b></span><span>Score <b id="score">0</b></span><span>Hints <b id="hints">0</b></span></div>
+  <div class="slots" id="slots" aria-label="Code letters"></div>
+</div></header>
+
+<div class="wrap">
+  <main id="main" aria-live="polite"></main>
+  <aside id="aside" aria-label="Search the file">
+    <h2>Search the file</h2>
+    <div class="sub">Type a word to find the line fast. You can also use your booklet.</div>
+    <input id="q" type="search" placeholder="bank, strings, collapsed, felony..." autocomplete="off" aria-label="Search the file">
+    <div class="chips" id="chips"></div>
+    <div class="res" id="res"></div>
+  </aside>
+</div>
+<button class="fab" id="fab" type="button">Search the file</button>
+
+<script>
+(function () {
+  // ---------- data ----------
+  // Short excerpts only, with line numbers from the class booklet.
+  var INDEX = [
+    { l: "l. 61-62", t: "“in the last month she's gotten worse”", k: "smith nettie worse month affection step 1" },
+    { l: "l. 93", t: "the ticking sound in Braling Two's chest", k: "tick tick-tick machine chest braling two" },
+    { l: "l. 105-110", t: "“From $7,600 to our $15,000 de luxe model”", k: "card price range luxe duplicate marionette cost dollars" },
+    { l: "l. 174-177", t: "“Clients must be pledged to secrecy ... it is still a felony, if caught, to use one.”", k: "secrecy secret felony crime congress legal illegal card back rule", fr: "pledged to secrecy = promettre de garder le secret · felony = a crime" },
+    { l: "l. 179-181", t: "“Clients must have a mold made of their body and a color index check”", k: "mold body color eyes lips hair skin check rule card", fr: "mold = un moule" },
+    { l: "l. 182-183", t: "“Clients must expect to wait for two months until their model is finished.”", k: "wait two months model finished rule card time" },
+    { l: "l. 184-190", t: "“Two months from now my ribs will have a chance to mend”; “I don't mean to sound ungrateful”", k: "ribs hand heal mend underlip bruised ungrateful smith body", fr: "ribs = côtes · mend / heal = guérir · ungrateful = ingrat" },
+    { l: "l. 195", t: "“Our motto is ‘No Strings Attached.’”", k: "motto strings attached ironic company two years", fr: "no strings attached = sans attaches, sans conditions" },
+    { l: "l. 199-200", t: "“Nettie and I have fifteen thousand in our joint bank account.”", k: "fifteen thousand 15000 joint bank account money balance" },
+    { l: "l. 200-201", t: "“I'll just slip eight thousand out as a business venture”", k: "eight thousand 8000 take withdraw money business venture plan" },
+    { l: "l. 203", t: "“Nettie needn't know.”", k: "secret know hypocrite nettie needn't" },
+    { l: "l. 205", t: "“There lay Nettie, pale, huge, and piously asleep.”", k: "nettie asleep bedroom pale" },
+    { l: "l. 206-209", t: "“He was almost overwhelmed with remorse ... you would smother me with kisses and coo in my ear.”", k: "remorse kisses smother coo overwhelmed letter dear nettie", fr: "overwhelmed = submergé · you would smother me with kisses = tu me couvrirais de baisers" },
+    { l: "l. 210-215", t: "“you make me feel like a criminal ... such a good, loving wife ... in the last month you have loved me more wildly than ever before.”", k: "criminal wife loving month wildly ever before speech letter dear nettie too good" },
+    { l: "l. 216-220", t: "“he wished to kiss her, confess his love, tear up the card, forget the whole business ... his hand ached and his ribs cracked and groaned”", k: "kiss confess love tear up card hand ached ribs groaned pain", fr: "tear up = destroy · ached = hurt · groaned = grognèrent" },
+    { l: "l. 222-224", t: "“Humming, he opened the kidney desk in the library and filched the bankbook.”", k: "humming kidney desk library filched bankbook steal", fr: "filched the bankbook = prit le chéquier" },
+    { l: "l. 228-230", t: "“Ten thousand dollars is missing! There's only five thousand left!”", k: "ten thousand 10000 five thousand 5000 missing left money bankbook frantically" },
+    { l: "l. 231-234", t: "“More hats, more clothes, more perfume! ... She bought that little house on the Hudson ... without so much as a by-your-leave!”", k: "hats clothes perfume house hudson by-your-leave permission explanation", fr: "without so much as a by-your-leave = sans même demander la permission" },
+    { l: "l. 235-236", t: "“He stormed into the bedroom, righteous and indignant.”", k: "stormed righteous indignant angry bedroom", fr: "righteous and indignant = indigné" },
+    { l: "l. 239-241", t: "“She did not stir. ‘What've you done with my money!’ he bellowed. She stirred fitfully.”", k: "stir stirred fitfully bellowed money did not move", fr: "she did not stir = elle ne bougea pas · bellowed = tonna-t-il · fitfully = par à-coups" },
+    { l: "l. 243-246", t: "“His heart throbbed violently. His tongue dried. He shivered. His knees suddenly turned to water. He collapsed.”", k: "heart throbbed tongue dried shivered knees water collapsed body fear", fr: "throbbed = battait · shivered = tremblait · collapsed = s'écroula" },
+    { l: "l. 249-251", t: "“the horrid thought ... the terror and the loneliness engulfed him ... the fever and disillusionment”", k: "horrid thought terror loneliness engulfed fever disillusionment feelings", fr: "engulfed him = le submergèrent" },
+    { l: "l. 252-255", t: "“his fevered ear was resting firmly and irrevocably upon her round pink bosom”", k: "ear bosom chest listen irrevocably", fr: "bosom = poitrine" },
+    { l: "l. 256", t: "“Tick-tick-tick-tick ...”", k: "tick sound clock machine marionette nettie" },
+    { l: "l. 257-259", t: "“As Smith walked away down the avenue in the night, Braling and Braling Two turned in at the door to the apartment.”", k: "ending last sentence avenue braling two door apartment" }
+  ];
+  var CHIPS = ["bank", "strings", "felony", "tick", "collapsed", "kisses", "ribs"];
+
+  var STATIONS = [
+    { id: 1, name: "The Bank", sub: "Smith's bankbook · lines 199 to 234", word: "TEN", letter: "T",
+      intro: "Smith opens the bankbook. Something is wrong. Find out how much money has disappeared.",
+      qs: [
+        { type: "text", ref: "l. 199-200 and 229-230", q: "There was $15,000 in the joint account. Smith finds $5,000. How many dollars are missing?", accept: ["10000", "10,000", "$10,000", "ten thousand", "10 000"], why: "15,000 − 5,000 = 10,000 (l. 228-230).", hint: "Subtract: 15,000 − 5,000.", ph: "Write a number" },
+        { type: "mcq", ref: "l. 105-110", q: "The card says “From $7,600 to our $15,000 de luxe model”. Could $10,000 buy a marionette?", opts: ["Yes, it is inside the price range", "No, it is too expensive", "No, it is too cheap", "The text gives no prices"], correct: 0, why: "$10,000 is between $7,600 and $15,000. So Nettie might have bought a marionette.", hint: "Compare 10,000 with the two prices on the card." },
+        { type: "multi", ref: "l. 231-234", q: "What does Smith think Nettie did with the money? Choose TWO.", opts: ["She bought hats, clothes and perfume", "She bought a little house on the Hudson", "She gave it to Braling", "She paid for a trip to Rio"], correct: [0, 1], why: "More hats, more clothes, more perfume (l. 231-232). A little house on the Hudson (l. 232-234).", hint: "Search: hats, hudson." },
+        { type: "mcq", ref: "l. 203 and 234", q: "Smith says “Nettie needn't know” (l. 203). Later he blames Nettie for acting “without so much as a by-your-leave” (l. 234). What does this show?", opts: ["He does the same thing he blames her for", "He is completely honest with his wife", "He wants to share the money with her", "He does not understand banks"], correct: 0, why: "By-your-leave = permission. Smith takes money in secret and is outraged when he thinks she did too.", hint: "Both sentences are about acting in secret." },
+        { type: "text", ref: "key word", q: "KEY WORD. Write the missing amount in thousands as one English word: ______ thousand dollars.", accept: ["ten"], why: "TEN. Your code letter is the first letter: T.", hint: "It is the number 10, in letters.", ph: "One word" }
+      ] },
+    { id: 2, name: "The Contract", sub: "The back of the white card · lines 174 to 195", word: "I", letter: "I",
+      intro: "The lawyers of Marionettes, Inc. wrote three files. One of them contains a lie. Find it.",
+      qs: [
+        { type: "lie", ref: "l. 174-190", q: "Click the file that contains the LIE.", files: [
+            { id: "A", t: "Clients must promise to keep the service secret, because using a marionette is a crime if you are caught." },
+            { id: "I", t: "Clients must expect to wait six months until their model is finished." },
+            { id: "E", t: "Smith is not shocked by the wait, because his body needs two months to heal." }], correct: "I", why: "File I is the lie. The card says two months (l. 182-183). Your code letter is I.", hint: "Check the waiting time in l. 182-183." },
+        { type: "text", ref: "l. 182-183", q: "Correct the lie. How long must clients wait?", accept: ["two months", "2 months", "two month"], why: "“Clients must expect to wait for two months until their model is finished.” (l. 182-183)", hint: "Search: wait.", ph: "Two words" },
+        { type: "mcq", ref: "l. 177", q: "“it is still a felony, if caught, to use one.” What does felony mean?", opts: ["a crime", "a secret", "a price", "a promise"], correct: 0, why: "A felony is a crime. The booklet gives: a felony = a crime.", hint: "Search: felony." },
+        { type: "multi", ref: "l. 174-183", q: "Which of these are “strings” (conditions) on the back of the card? Choose all that apply.", opts: ["Keep the service secret", "Have a mold made of your body", "Wait two months", "Receive a free gift"], correct: [0, 1, 2], why: "Secrecy (l. 174-177), a mold and a color index check (l. 179-181), two months of waiting (l. 182-183).", hint: "There are three rules on the back of the card." },
+        { type: "mcq", ref: "l. 195", q: "So the motto “No Strings Attached” is...", opts: ["ironic: the card is full of conditions", "honest: there are no rules", "a warning about puppets' strings", "a price"], correct: 0, why: "Irony: the company says there are no conditions, but the card lists several. Marionettes also have no strings: they are free robots.", hint: "Compare the motto with the three rules." }
+      ] },
+    { id: 3, name: "The Bedroom", sub: "Smith collapses · lines 239 to 251", word: "COLLAPSED", letter: "C",
+      intro: "Smith wakes Nettie up. Put the scene back together.",
+      qs: [
+        { type: "order", ref: "l. 239-246", q: "Put the scene in order. Click the sentences one by one.", items: ["He bellows: “What've you done with my money!”", "She stirs fitfully.", "His knees turn to water.", "He collapses."], why: "Bellowed (l. 240), stirred fitfully (l. 241), knees turned to water (l. 245), collapsed (l. 246).", hint: "Search: bellowed, stirred, knees." },
+        { type: "match", ref: "booklet notes", q: "Match each verb with its French meaning.", pairs: [["throbbed", "battait"], ["shivered", "tremblait"], ["bellowed", "tonna-t-il"], ["collapsed", "s'écroula"]], why: "Throbbed = battait. Shivered = tremblait. Bellowed = tonna-t-il. Collapsed = s'écroula.", hint: "The booklet gives these in the margin." },
+        { type: "mcq", ref: "l. 239", q: "“She did not stir.” What does it mean?", opts: ["She did not move.", "She did not cook.", "She did not answer the phone.", "She did not like it."], correct: 0, why: "Stir = bouger. Nettie does not react: a first strange detail.", hint: "The booklet says: elle ne bougea pas." },
+        { type: "multi", ref: "l. 249-251", q: "Which words describe Smith's feelings? Choose THREE.", opts: ["terror", "loneliness", "disillusionment", "money", "avenue"], correct: [0, 1, 2], why: "The horrid thought, the terror, the loneliness, the fever and disillusionment (l. 249-251).", hint: "Search: terror." },
+        { type: "text", ref: "key word", q: "KEY WORD. Which verb ends the scene (l. 246)? “He ______.”", accept: ["collapsed"], why: "COLLAPSED. Your code letter is the first letter: C.", hint: "He fell down. 9 letters, it starts with C.", ph: "One word" }
+      ] },
+    { id: 4, name: "The Letter", sub: "Smith speaks to sleeping Nettie · lines 206 to 215", word: "KISSES", letter: "K",
+      intro: "Smith talks to Nettie in the dark. Rebuild his speech, then find what is too good to be true.",
+      qs: [
+        { type: "cloze", ref: "l. 208-215", q: "Complete Smith's speech with the word bank.", bank: ["wife", "kisses", "month", "criminal"],
+          tpl: "“If you were awake you would smother me with {0} and coo in my ear. Really, you make me feel like a {1}. You have been such a good, loving {2}. It seems that in the last {3} you have loved me more wildly than ever before.”", answers: ["kisses", "criminal", "wife", "month"], why: "kisses, criminal, wife, month. Your code letter is the first letter of the FIRST word: K.", hint: "Search: kisses, criminal." },
+        { type: "mcq", ref: "l. 213-215", q: "Which sentence is “too good to be true”?", opts: ["“In the last month you have loved me more wildly than ever before.”", "“You have been such a good, loving wife.”", "“Really, you make me feel like a criminal.”", "“If you were awake you would smother me with kisses.”"], correct: 0, why: "A sudden change in the last month is suspicious.", hint: "Look for a change in time." },
+        { type: "mcq", ref: "l. 61-62", q: "Which sentence from Step 1 says almost the same thing?", opts: ["“In the last month she's gotten worse.”", "“She won't know I'm gone.”", "“I wish I were going with you.”", "“Hate's my problem.”"], correct: 0, why: "Both sentences mention the last month: since then, Nettie's affection has grown.", hint: "Search: month." },
+        { type: "mcq", ref: "l. 210", q: "“You make me feel like a criminal.” Why is this ironic?", opts: ["Smith is about to take money in secret and the service is a crime", "Smith is a police officer", "Nettie stole his money", "Smith hates the card"], correct: 0, why: "He feels like a criminal because he is acting like one: using a service that is a felony (l. 177) and filching the bankbook (l. 224).", hint: "Think about the card and the bankbook." },
+        { type: "mcq", ref: "grammar", q: "Nettie's affection ______ be programmed. Which word shows you are almost sure?", opts: ["must", "might", "can't", "needn't"], correct: 0, why: "Must = I am almost sure. Might = it is possible. Both are good in the report, with a reason.", hint: "Must or might?" }
+      ] }
+  ];
+
+  var state = { team: "", started: 0, done: {}, points: 0, hints: 0, vaultOpen: false, finished: false, elapsed: 0 };
+  var view = { screen: "home", s: 0, qi: 0 };
+  var cur = null; // current question runtime state
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function norm(s) { return String(s).toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim(); }
+  function shuffle(a) { var b = a.slice(), i, j, t; for (i = b.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+  function fmt(sec) { var m = Math.floor(sec / 60), s = sec % 60; return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s; }
+
+  // ---------- header ----------
+  function renderTop() {
+    $("score").textContent = state.points;
+    $("hints").textContent = state.hints;
+    var h = "";
+    STATIONS.forEach(function (s) { h += '<span class="slot' + (state.done[s.id] ? " on" : "") + '">' + (state.done[s.id] ? s.letter : "") + "</span>"; });
+    $("slots").innerHTML = h;
+  }
+  function tickClock() {
+    if (state.started && !state.finished) state.elapsed = Math.floor((Date.now() - state.started) / 1000);
+    $("clock").textContent = fmt(state.elapsed);
+  }
+  setInterval(tickClock, 1000);
+
+  // ---------- search ----------
+  function renderSearch(term) {
+    var t = norm(term || "");
+    var out = "";
+    var list = INDEX;
+    if (t) {
+      var words = t.split(" ");
+      list = INDEX.filter(function (e) {
+        var hay = norm(e.l + " " + e.t + " " + e.k + " " + (e.fr || ""));
+        return words.every(function (w) { return hay.indexOf(w) > -1; });
+      });
+    }
+    if (!list.length) out = '<div class="hit">No result. Try one word, like <b>bank</b> or <b>tick</b>.</div>';
+    list.slice(0, t ? 12 : 8).forEach(function (e) {
+      var tx = esc(e.t);
+      if (t) t.split(" ").forEach(function (w) { if (w.length > 1) tx = tx.replace(new RegExp("(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig"), "<mark>$1</mark>"); });
+      out += '<div class="hit"><div class="l">' + esc(e.l) + "</div>" + tx + (e.fr ? '<div class="fr">' + esc(e.fr) + "</div>" : "") + "</div>";
+    });
+    $("res").innerHTML = out;
+  }
+  function initSearch() {
+    $("chips").innerHTML = CHIPS.map(function (c) { return '<button type="button" data-chip="' + c + '">' + c + "</button>"; }).join("");
+    $("chips").addEventListener("click", function (e) { var b = e.target.closest("[data-chip]"); if (b) { $("q").value = b.getAttribute("data-chip"); renderSearch($("q").value); } });
+    $("q").addEventListener("input", function () { renderSearch($("q").value); });
+    $("fab").addEventListener("click", function () { var a = $("aside"); a.classList.toggle("open"); $("fab").textContent = a.classList.contains("open") ? "Close the search" : "Search the file"; if (a.classList.contains("open")) $("q").focus(); });
+    renderSearch("");
+  }
+
+  // ---------- screens ----------
+  function home() {
+    view.screen = "home";
+    var allDone = STATIONS.every(function (s) { return state.done[s.id]; });
+    var h = '<section class="hero"><div class="file">FILE 172-259 · SMITH’S LAST NIGHT</div><h1>Prove that Nettie is a marionette.</h1>' +
+      "<p>You are an agent of a Congress committee. Marionettes, Inc. is accused of selling people. Visit the four stations, win four code letters and open the vault. Use the search box or your booklet to find the lines fast.</p>";
+    if (!state.started) {
+      h += '<div class="team"><div><label for="team">Team name</label><input id="team" type="text" maxlength="30" placeholder="e.g. Agents of the Strings" value="' + esc(state.team) + '"></div><button class="btn" id="go" type="button">Start the mission</button></div>';
+    } else {
+      h += "<p>Team: <b style=\"color:var(--text)\">" + esc(state.team || "Agents") + "</b></p>";
+    }
+    h += "</section>";
+    if (state.started) {
+      h += '<div class="cards">';
+      STATIONS.forEach(function (s) {
+        var d = state.done[s.id];
+        h += '<button class="card' + (d ? " done" : "") + '" type="button" data-st="' + s.id + '"><span class="n">' + s.id + "</span><h3>" + esc(s.name) + "</h3><small>" + esc(s.sub) + "</small>" + (d ? '<span class="stamp">LETTER ' + s.letter + "</span>" : "") + "</button>";
+      });
+      h += '<button class="card vault" type="button" id="vaultBtn"' + (allDone ? "" : " disabled") + '><span class="n">?</span><h3>The Vault</h3><small>' + (allDone ? "Four letters found. Open it." : "Opens with four letters.") + "</small></button></div>";
+    }
+    $("main").innerHTML = h;
+    var go = $("go");
+    if (go) go.addEventListener("click", function () { state.team = $("team").value.trim(); state.started = Date.now(); home(); renderTop(); snap(); });
+  }
+
+  function openStation(i) {
+    view = { screen: "station", s: i, qi: 0 };
+    newQ();
+  }
+
+  function newQ() {
+    var st = STATIONS[view.s], q = st.qs[view.qi];
+    cur = { attempts: 0, solved: false, sel: [], seq: [], order: q.type === "order" ? shuffleDiff(q.items) : null, mix: q.type === "match" ? shuffle(q.pairs.map(function (p) { return p[1]; })) : null };
+    drawQ();
+  }
+  function shuffleDiff(items) { var s, n = 0; do { s = shuffle(items); n++; } while (n < 8 && s.join("|") === items.join("|")); return s; }
+
+  function drawQ() {
+    var st = STATIONS[view.s], q = st.qs[view.qi], n = st.qs.length;
+    var h = '<div class="crumb"><button type="button" id="back">All stations</button><span>Station ' + st.id + " · " + esc(st.name) + "</span></div>";
+    h += '<div class="bar"><i style="width:' + Math.round((view.qi / n) * 100) + '%"></i></div>';
+    h += '<section class="panel q" id="qbox"><div class="ref">Question ' + (view.qi + 1) + " of " + n + " · " + esc(q.ref) + "</div>";
+    if (view.qi === 0) h += '<p style="color:var(--mute);margin:6px 0 0">' + esc(st.intro) + "</p>";
+    h += "<h2>" + esc(q.q) + "</h2>";
+    var dis = cur.solved ? " disabled" : "";
+    if (q.type === "mcq") {
+      h += '<div class="opts">' + q.opts.map(function (o, i) { return '<button type="button" class="opt' + (cur.sel[0] === i ? " sel" : "") + '" data-opt="' + i + '"' + dis + '><span class="k">' + "ABCD"[i] + "</span><span>" + esc(o) + "</span></button>"; }).join("") + "</div>";
+    } else if (q.type === "multi") {
+      h += '<div class="opts">' + q.opts.map(function (o, i) { return '<button type="button" class="opt' + (cur.sel.indexOf(i) > -1 ? " sel" : "") + '" data-opt="' + i + '"' + dis + '><span class="k">' + (cur.sel.indexOf(i) > -1 ? "✓" : "○") + "</span><span>" + esc(o) + "</span></button>"; }).join("") + "</div>";
+    } else if (q.type === "lie") {
+      h += '<div class="opts">' + q.files.map(function (f) { return '<button type="button" class="opt lie' + (cur.sel[0] === f.id ? " sel" : "") + '" data-opt="' + f.id + '"' + dis + '><span class="k">' + f.id + "</span><span>" + esc(f.t) + "</span></button>"; }).join("") + "</div>";
+    } else if (q.type === "text") {
+      h += '<div class="opts"><input class="inp" id="ans" type="text" autocomplete="off" placeholder="' + esc(q.ph || "") + '" value="' + esc(cur.text || "") + '"' + dis + "></div>";
+    } else if (q.type === "order") {
+      h += '<div class="opts">' + cur.order.map(function (o) { var used = cur.seq.indexOf(o) > -1; return '<button type="button" class="opt" data-it="' + esc(o) + '"' + (used || cur.solved ? " disabled" : "") + ">" + esc(o) + "</button>"; }).join("") + "</div>";
+      h += '<div class="ref">Your order</div><div class="seq">' + cur.seq.map(function (o, i) { return '<span class="chip">' + (i + 1) + ". " + esc(o) + "</span>"; }).join("") + '</div><div class="row"><button class="btn alt" type="button" id="reset"' + dis + ">Start again</button></div>";
+    } else if (q.type === "match") {
+      h += '<div class="match">' + q.pairs.map(function (p, i) { return "<div><b>" + esc(p[0]) + '</b><select data-m="' + i + '"' + dis + '><option value="">choose...</option>' + cur.mix.map(function (m) { return '<option value="' + esc(m) + '"' + ((cur.mval && cur.mval[i] === m) ? " selected" : "") + ">" + esc(m) + "</option>"; }).join("") + "</select></div>"; }).join("") + "</div>";
+    } else if (q.type === "cloze") {
+      h += '<div class="ref">Word bank: ' + q.bank.map(esc).join(" · ") + "</div>";
+      var t2 = esc(q.tpl).replace(/\{(\d)\}/g, function (m, k) { return '<select data-c="' + k + '"' + dis + '><option value="">...</option>' + q.bank.map(function (b) { return '<option value="' + b + '"' + ((cur.cval && cur.cval[k] === b) ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select>"; });
+      h += '<p class="cloze">' + t2 + "</p>";
+    }
+    h += '<div class="row">';
+    if (!cur.solved) h += '<button class="btn" type="button" id="check">Check</button><button class="btn alt" type="button" id="hint">Show a hint</button>';
+    h += "</div>";
+    if (cur.msg) h += '<div class="fb ' + cur.msg.cls + '" role="status">' + cur.msg.html + "</div>";
+    if (cur.solved) h += '<div class="row"><button class="btn" type="button" id="next">' + (view.qi + 1 < n ? "Next question" : "Reveal my letter") + "</button></div>";
+    h += "</section>";
+    $("main").innerHTML = h;
+    if (cur.shake) { $("qbox").classList.add("shake"); cur.shake = false; }
+  }
+
+  function isRight(q) {
+    if (q.type === "mcq") return cur.sel[0] === q.correct;
+    if (q.type === "lie") return cur.sel[0] === q.correct;
+    if (q.type === "multi") { var a = cur.sel.slice().sort().join(","), b = q.correct.slice().sort().join(","); return a === b; }
+    if (q.type === "text") { var v = norm(cur.text || "").replace(/[.]/g, ""); return q.accept.some(function (x) { return norm(x) === v; }); }
+    if (q.type === "order") return cur.seq.length === q.items.length && cur.seq.join("|") === q.items.join("|");
+    if (q.type === "match") { var mv = cur.mval || []; return q.pairs.every(function (p, i) { return mv[i] === p[1]; }); }
+    if (q.type === "cloze") { var cv = cur.cval || []; return q.answers.every(function (x, i) { return cv[i] === x; }); }
+    return false;
+  }
+
+  function check() {
+    var st = STATIONS[view.s], q = st.qs[view.qi];
+    var a = $("ans"); if (a) cur.text = a.value;
+    if (q.type === "text" && !norm(cur.text || "")) { cur.msg = { cls: "no", html: "Write your answer first." }; drawQ(); return; }
+    cur.attempts++;
+    if (isRight(q)) {
+      cur.solved = true;
+      var pts = Math.max(1, 4 - cur.attempts);
+      state.points += pts;
+      cur.msg = { cls: "ok", html: "<b>Correct, +" + pts + " point" + (pts > 1 ? "s" : "") + ".</b> " + esc(q.why) };
+      renderTop(); snap();
+    } else {
+      cur.shake = true;
+      cur.msg = { cls: "no", html: "<b>Not yet.</b> " + (cur.attempts >= 2 ? "Hint: " + esc(q.hint) : "Look at the line again, or use the search box.") };
+    }
+    drawQ();
+  }
+
+  function next() {
+    var st = STATIONS[view.s];
+    if (view.qi + 1 < st.qs.length) { view.qi++; newQ(); return; }
+    state.done[st.id] = true; renderTop(); snap();
+    var h = '<div class="crumb"><button type="button" id="back">All stations</button></div><section class="panel"><div class="ref">Station ' + st.id + " complete</div><h2>Code letter found</h2><div class=\"tile\">" + st.letter + "</div><p>" + (st.id === 2 ? "The letter of the file with the lie." : "The first letter of <b>" + st.word + "</b>.") + "</p>";
+    var allDone = STATIONS.every(function (s) { return state.done[s.id]; });
+    h += '<div class="row">' + (allDone ? '<button class="btn" type="button" id="toVault">Go to the vault</button>' : '<button class="btn" type="button" id="back2">Choose another station</button>') + "</div></section>";
+    $("main").innerHTML = h;
+  }
+
+  // ---------- vault ----------
+  function vault() {
+    view.screen = "vault";
+    var h = '<div class="crumb"><button type="button" id="back">All stations</button><span>The Vault</span></div><section class="panel"><h2>The Vault</h2>';
+    h += '<p style="color:var(--mute)">Read your four letters in order, from station 1 to station 4.</p><div class="tile-row">' + STATIONS.map(function (s) { return '<div class="tile">' + s.letter + "</div>"; }).join("") + "</div>";
+    if (!state.vaultOpen) {
+      h += '<div class="opts" style="margin-top:14px"><label for="code" style="color:var(--mute)">Which word do the letters spell?</label><input class="inp" id="code" type="text" autocomplete="off" maxlength="12"></div><div class="row"><button class="btn" id="open" type="button">Open the vault</button></div><div id="vmsg"></div>';
+    } else {
+      h += vaultOpen();
+    }
+    h += "</section>";
+    $("main").innerHTML = h;
+    if (state.vaultOpen) wireReport();
+  }
+
+  function vaultOpen() {
+    var h = '<div style="margin:18px 0"><div class="big">TICK-TICK-TICK</div><p style="font-size:1.25rem;margin:6px 0 0"><b>Nettie is a marionette.</b></p><p style="color:var(--mute);max-width:60ch">It is the sound Smith hears in line 256, with his ear on her chest. It is the same sound as Braling Two’s chest (l. 93).</p></div>';
+    h += '<div class="report"><h3 style="font-size:1.2rem;margin:18px 0 6px">Case closed: write your report</h3><p style="color:var(--mute);margin:0 0 8px">Three sentences. Use must, might and a wish.</p>' +
+      '<label for="r1">1. Nettie must ...</label><textarea id="r1" rows="2" placeholder="Nettie must be ... because ..."></textarea>' +
+      '<label for="r2" style="display:block;margin-top:8px">2. The real Nettie might have ...</label><textarea id="r2" rows="2" placeholder="The real Nettie might have bought ..."></textarea>' +
+      '<label for="r3" style="display:block;margin-top:8px">3. I wish / If only Smith ...</label><textarea id="r3" rows="2" placeholder="I wish Smith had ..."></textarea>' +
+      '<ul class="checks" id="checks"><li id="c1">Sentence 1 uses must + be or must have</li><li id="c2">Sentence 2 uses might have + past participle</li><li id="c3">Sentence 3 uses I wish or If only</li></ul>' +
+      '<div class="row"><button class="btn" type="button" id="verify">Check my report</button><button class="btn alt" type="button" id="copy">Copy my report</button></div><div id="rmsg" style="margin-top:8px;color:var(--mute)"></div></div>';
+    h += '<h3 style="font-size:1.2rem;margin:26px 0 4px">Think about it (speak with your team)</h3><div class="think"><div>Who had the same idea as Smith? Why is it ironic?</div><div>Who walks into the apartment in the last sentence (l. 257-259)? Which one is the real Braling?</div><div>Smith thought he was escaping. Who was really controlled?</div></div>';
+    h += '<p style="margin-top:20px;color:var(--mute)">Mission time <b style="color:var(--text)">' + fmt(state.elapsed) + '</b> · score <b style="color:var(--text)">' + state.points + "</b> / 60 · hints <b style=\"color:var(--text)\">" + state.hints + "</b>. Show this screen to your teacher.</p>";
+    return h;
+  }
+
+  function reportChecks() {
+    var a = ($("r1") || {}).value || "", b = ($("r2") || {}).value || "", c = ($("r3") || {}).value || "";
+    var r = [/\bmust\s+(be|have)\b/i.test(a), /\bmight\s+have\s+\w+/i.test(b), /\b(i\s+wish|if\s+only)\b/i.test(c)];
+    [1, 2, 3].forEach(function (i) { $("c" + i).className = r[i - 1] ? "ok" : ""; });
+    return r;
+  }
+  function wireReport() {
+    ["r1", "r2", "r3"].forEach(function (id) { $(id).addEventListener("input", reportChecks); });
+    $("verify").addEventListener("click", function () {
+      var r = reportChecks();
+      $("rmsg").textContent = r.every(Boolean) ? "Great report. Your structures are correct." : "Check the structures marked with an empty circle.";
+    });
+    $("copy").addEventListener("click", function () {
+      var txt = "Team: " + (state.team || "Agents") + "\n1. " + $("r1").value + "\n2. " + $("r2").value + "\n3. " + $("r3").value + "\nTime " + fmt(state.elapsed) + ", score " + state.points + "/60, hints " + state.hints;
+      try { navigator.clipboard.writeText(txt).then(function () { $("rmsg").textContent = "Copied."; }, function () { $("rmsg").textContent = "Copy is not available here. Select the text and copy it."; }); }
+      catch (e) { $("rmsg").textContent = "Copy is not available here. Select the text and copy it."; }
+    });
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    var b;
+    if ((b = t.closest("[data-st]"))) { openStation(parseInt(b.getAttribute("data-st"), 10) - 1); return; }
+    if (t.closest("#back") || t.closest("#back2")) { home(); return; }
+    if (t.closest("#vaultBtn") || t.closest("#toVault")) { vault(); return; }
+    if (t.closest("#check")) { check(); return; }
+    if (t.closest("#next")) { next(); return; }
+    if (t.closest("#hint")) { var q = STATIONS[view.s].qs[view.qi]; if (!cur.hinted) { cur.hinted = true; state.hints++; renderTop(); snap(); } cur.msg = { cls: "", html: "<b>Hint:</b> " + esc(q.hint) }; drawQ(); return; }
+    if (t.closest("#reset")) { cur.seq = []; drawQ(); return; }
+    if (t.closest("#open")) {
+      var v = norm($("code").value);
+      if (v === "tick") { state.vaultOpen = true; state.finished = true; tickClock(); snap(); vault(); }
+      else { $("vmsg").innerHTML = '<div class="fb no">Not the right word. Read the letters from station 1 to 4. If it still fails, one station has a mistake.</div>'; }
+      return;
+    }
+    if ((b = t.closest("[data-opt]")) && view.screen === "station") {
+      var qq = STATIONS[view.s].qs[view.qi], val = b.getAttribute("data-opt");
+      if (qq.type === "mcq") cur.sel = [parseInt(val, 10)];
+      else if (qq.type === "lie") cur.sel = [val];
+      else { var ix = parseInt(val, 10), p = cur.sel.indexOf(ix); if (p > -1) cur.sel.splice(p, 1); else cur.sel.push(ix); }
+      var a2 = $("ans"); if (a2) cur.text = a2.value;
+      drawQ(); return;
+    }
+    if ((b = t.closest("[data-it]"))) { cur.seq.push(b.getAttribute("data-it")); drawQ(); return; }
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.hasAttribute && t.hasAttribute("data-m")) { cur.mval = cur.mval || []; cur.mval[parseInt(t.getAttribute("data-m"), 10)] = t.value; }
+    if (t.hasAttribute && t.hasAttribute("data-c")) { cur.cval = cur.cval || []; cur.cval[parseInt(t.getAttribute("data-c"), 10)] = t.value; }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target && e.target.id === "ans") { e.preventDefault(); check(); }
+    if (e.key === "Enter" && e.target && e.target.id === "code") { e.preventDefault(); $("open").click(); }
+  });
+
+  // ---------- keep place across republish ----------
+  function snap() { /* registered below */ }
+  function start(data) {
+    if (data && data.state) { state = data.state; if (state.started && !state.finished) state.elapsed = Math.floor((Date.now() - state.started) / 1000); }
+    renderTop(); initSearch(); tickClock(); home();
+  }
+  try {
+    if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(function () { return { state: state }; });
+  } catch (e) {}
+  var data = null;
+  try { data = window.claude && window.claude.hot ? window.claude.hot.data : null; } catch (e) {}
+  start(data || {});
+})();
+</script>
+</body>
+</html>
